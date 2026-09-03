@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procesos Críticos — PMG Ciclo 2 · Constructora García</title>
+<style>
+  :root {
+    --azul:       #2C5282;
+    --azul-med:   #3A6FC4;
+    --azul-claro: #4A90D9;
+    --gris-oscuro:#1F2937;
+    --gris:       #6B7280;
+    --gris-fondo: #F3F5F9;
+    --rojo:       #DC2626;
+    --sombra:     0 2px 10px rgba(0,0,0,0.08);
+    --sombra-hover: 0 6px 24px rgba(44,82,130,0.18);
+    --radio:      12px;
+  }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-fondo);
+    color: var(--gris-oscuro);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    background: linear-gradient(135deg, #1A3A5C 0%, #2C5282 55%, #3A6FC4 100%);
+    color: white;
+    padding: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .logo-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-img-wrap {
+    background: white;
+    border-radius: 10px;
+    padding: 9px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+    height: 62px;
+    width: 62px;
+  }
+  .logo-img-wrap svg { width: 44px; height: 44px; }
+
+  .logo-text { line-height: 1.2; }
+  .logo-nombre {
+    font-family: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: white;
+    line-height: 1;
+  }
+  .logo-nombre span { color: #7EB6FF; }
+  .logo-constructora {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .logo-sub { font-size: 11px; opacity: .65; margin-top: 5px; }
+
+  .header-right { text-align: right; }
+  .badge-pmg {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    backdrop-filter: blur(4px);
+  }
+  .badge-fecha { font-size: 11px; opacity: .6; margin-top: 5px; }
+
+  /* ── TÍTULO SECCIÓN ── */
+  .section-title-bar {
+    background: white;
+    border-bottom: 3px solid var(--azul-claro);
+    padding: 16px 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ── MAIN ── */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 32px 60px;
+  }
+
+  /* ── STATS ── */
+  .pc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .pc-stat {
+    background: white;
+    border-radius: var(--radio);
+    padding: 18px 16px;
+    box-shadow: var(--sombra);
+    text-align: center;
+    border-top: 3px solid transparent;
+  }
+  .pc-stat.total    { border-top-color: var(--azul-med); }
+  .pc-stat.ok       { border-top-color: #1A7A4A; }
+  .pc-stat.parcial  { border-top-color: #D97706; }
+  .pc-stat.pending  { border-top-color: var(--rojo); }
+  .pc-stat.dias     { border-top-color: #7C5CBC; }
+
+  .pc-stat-val { font-size: 30px; font-weight: 800; line-height: 1; }
+  .pc-stat-lbl { font-size: 10.5px; color: var(--gris); text-transform: uppercase; letter-spacing: .7px; margin-top: 5px; }
+
+  /* ── FILTROS ── */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    align-items: center;
+  }
+  .filter-lbl { font-size: 12px; color: var(--gris); font-weight: 600; margin-right: 4px; }
+  .pc-fil {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1.5px solid #dde3ee;
+    background: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    color: var(--gris-oscuro);
+  }
+  .pc-fil:hover { border-color: var(--azul-claro); color: var(--azul); }
+  .pc-fil.active           { background: var(--azul); color: white; border-color: var(--azul); }
+  .pc-fil.f-resuelto.active  { background: #1A7A4A; border-color: #1A7A4A; }
+  .pc-fil.f-parcial.active   { background: #D97706; border-color: #D97706; }
+  .pc-fil.f-pendiente.active { background: var(--rojo); border-color: var(--rojo); }
+
+  /* ── GRID DE TARJETAS ── */
+  .pc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 18px;
+  }
+
+  .pc-card {
+    background: white;
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow .2s, transform .18s;
+    border-left: 4px solid transparent;
+  }
+  .pc-card:hover { box-shadow: var(--sombra-hover); transform: translateY(-2px); }
+  .pc-card.est-resuelto  { border-left-color: #1A7A4A; }
+  .pc-card.est-parcial   { border-left-color: #D97706; }
+  .pc-card.est-pendiente { border-left-color: var(--rojo); }
+
+  .pc-card-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+
+  .pc-num-badge {
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: .5px;
+  }
+
+  .pc-head-text { flex: 1; min-width: 0; }
+  .pc-titulo    { font-size: 13.5px; font-weight: 700; color: var(--gris-oscuro); line-height: 1.35; }
+  .pc-tiempo    { font-size: 11px; color: var(--gris); margin-top: 4px; }
+
+  .pc-estado-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge-resuelto  { background: #D1FAE5; color: #065F46; }
+  .badge-parcial   { background: #FEF3C7; color: #92400E; }
+  .badge-pendiente { background: #FEE2E2; color: #991B1B; }
+
+  .pc-toggle { font-size: 16px; color: var(--gris); transition: transform .2s; flex-shrink:0; }
+  .pc-card.open .pc-toggle { transform: rotate(180deg); }
+
+  .pc-body { display: none; padding: 0 18px 18px; }
+  .pc-card.open .pc-body { display: block; }
+
+  .pc-separator { height: 1px; background: #EEF0F5; margin-bottom: 14px; }
+  .pc-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gris);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .pc-desc { font-size: 13px; color: var(--gris-oscuro); line-height: 1.6; }
+  .pc-riesgo {
+    background: #FFF5F5;
+    border-left: 3px solid var(--rojo);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    color: #7B1A1A;
+    line-height: 1.5;
+  }
+  .pc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: #EEF4FF;
+    color: var(--azul);
+    border: 1px solid #C5D8F5;
+  }
+  .chip.rojo { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--gris);
+    padding: 20px;
+    border-top: 1px solid #E5E7EB;
+    margin-top: 10px;
+  }
+
+  @media (max-width: 600px) {
+    .header-inner { padding: 16px 18px; }
+    .main { padding: 18px 14px 40px; }
+    .pc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="page-header">
+  <div class="header-inner">
+    <div class="logo-block">
+      <!-- Ícono G en caja blanca -->
+      <div class="logo-img-wrap">
+        <!--
+          G García: arco de círculo (stroke) + barra horizontal + cuadrado azul rotado
+          Fiel a identidad corporativa: marrón #6B5748, azul #3D5FA0
+        -->
+        <svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+          <!-- Arco principal de la G (stroke sobre círculo, gap en zona superior-derecha) -->
+          <circle cx="26" cy="26" r="18"
+            fill="none"
+            stroke="#6B5748"
+            stroke-width="11"
+            stroke-linecap="butt"
+            stroke-dasharray="83 30"
+            transform="rotate(28 26 26)"/>
+          <!-- Barra horizontal de la G (brazo derecho) -->
+          <rect x="21" y="29" width="27" height="10" fill="#6B5748"/>
+          <!-- Cuadrado azul rotado en la apertura superior-derecha -->
+          <rect x="38.5" y="11.5" width="12" height="12" rx="1.5"
+            fill="#3D5FA0"
+            transform="rotate(20 44.5 17.5)"/>
+        </svg>
+      </div>
+      <!-- Texto corporativo -->
+      <div class="logo-text">
+        <div class="logo-nombre">GARCI<span>A</span></div>
+        <div class="logo-constructora">Constructora</div>
+        <div class="logo-sub">Control de Gestión · PMG Ciclo 2</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="badge-pmg">⚠️ Procesos Críticos · Iniciativa I1</div>
+      <div class="badge-fecha">Grupo 3 · Hoja de Ruta · Rev. 11.1 · Sep 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- STATS -->
+  <div class="pc-stats">
+    <div class="pc-stat total">
+      <div class="pc-stat-val" style="color:var(--azul-med)">9</div>
+      <div class="pc-stat-lbl">Procesos críticos</div>
+    </div>
+    <div class="pc-stat ok">
+      <div class="pc-stat-val" style="color:#1A7A4A">6</div>
+      <div class="pc-stat-lbl">Resueltos</div>
+    </div>
+    <div class="pc-stat parcial">
+      <div class="pc-stat-val" style="color:#D97706">2</div>
+      <div class="pc-stat-lbl">En desarrollo</div>
+    </div>
+    <div class="pc-stat pending">
+      <div class="pc-stat-val" style="color:var(--rojo)">1</div>
+      <div class="pc-stat-lbl">No abordado</div>
+    </div>
+    <div class="pc-stat dias">
+      <div class="pc-stat-val" style="color:#7C5CBC;font-size:22px">~58–76</div>
+      <div class="pc-stat-lbl">Días/mes recuperables</div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filter-bar">
+    <span class="filter-lbl">Filtrar:</span>
+    <button class="pc-fil active"        onclick="filtrar(this,'todos')">Todos</button>
+    <button class="pc-fil f-resuelto"    onclick="filtrar(this,'resuelto')">✅ Resueltos</button>
+    <button class="pc-fil f-parcial"     onclick="filtrar(this,'parcial')">⚙️ En desarrollo</button>
+    <button class="pc-fil f-pendiente"   onclick="filtrar(this,'pendiente')">🔴 No abordado</button>
+  </div>
+
+  <!-- GRID -->
+  <div class="pc-grid" id="pc-grid"></div>
+
+  <p style="font-size:11px;color:var(--gris);margin-top:16px">
+    Haz clic en cada tarjeta para ver descripción completa, riesgo y módulos del ecosistema digital que lo resuelven.
+  </p>
+
+</div>
+
+<!-- ── FOOTER ── -->
+<div class="page-footer">
+  Constructora José Miguel García y Cía. Ltda. · Sistema Control de Gestión · PMG Ciclo 2 · Iniciativa I1 · Grupo 3
+</div>
+
+<script>
+const PC_DATA = [
+  {
+    id:'PC01', titulo:'Control de costos — OT / Residente',
+    desc:'Planilla de rendimiento presupuestal (PRP) mensual entre OT y Residente. Seguimiento de costos reales vs. presupuesto por partida con cierre en Unysoft.',
+    riesgo:'Toma de decisiones tardía. Sin datos en tiempo real, el costo real supera el presupuesto sin capacidad de reacción oportuna.',
+    tiempo:'~8 días/mes', estado:'resuelto',
+    modulos:['01 · Presupuesto','06 · Control Costos'],
+    pendiente:[]
+  },
+  {
+    id:'PC02', titulo:'Control de avance físico semanal — JT / OT',
+    desc:'Levantamiento semanal de avance físico por partida entre Jefe de Terreno y OT. Base para cálculo de PPC y proyecciones de flujo de caja.',
+    riesgo:'Decisiones sin información confiable. El avance reportado no refleja la realidad, generando desvíos en programación y flujo de caja.',
+    tiempo:'~12 días/mes', estado:'parcial',
+    modulos:['03 · Programación','HOLO (en desarrollo)'],
+    pendiente:['Integración HOLO completa con Unysoft pendiente']
+  },
+  {
+    id:'PC03', titulo:'Compra y gestión de materiales — OT / Bodega',
+    desc:'Proceso de solicitud, cotización, aprobación y recepción de materiales desde obra hacia bodega y proveedores. Flujo digital en Unysoft.',
+    riesgo:'Obra detenida por falta de materiales. Proceso reactivo sin trazabilidad genera quiebres de stock y pérdida de productividad.',
+    tiempo:'8–12 días/mes', estado:'resuelto',
+    modulos:['02 · Adquisiciones','Bodega Unysoft'],
+    pendiente:[]
+  },
+  {
+    id:'PC04', titulo:'Cierre de subcontratos y pago por avance',
+    desc:'Medición de avance de subcontratos, aprobación de Estado de Pago (EP) y cierre de partidas contratadas con respaldo de calidad.',
+    riesgo:'Pago sin respaldo técnico. Liquidaciones sin medición real exponen a la empresa a sobrepagos y conflictos con subcontratistas.',
+    tiempo:'7–10 días/mes', estado:'resuelto',
+    modulos:['04 · Subcontratos','08 · Calidad'],
+    pendiente:[]
+  },
+  {
+    id:'PC05', titulo:'Registro de cubicaciones y kit de materiales — OT / Bodega',
+    desc:'Construcción y mantención de kits de materiales por tipo de vivienda y partida. Estándar para comparar consumo real vs. presupuesto.',
+    riesgo:'Errores en compras y desviaciones entre real y presupuesto. Sin kits estandarizados, cada compra es ad hoc y difícil de controlar.',
+    tiempo:'7–10 días/mes', estado:'resuelto',
+    modulos:['01 · Presupuesto','02 · Adquisiciones'],
+    pendiente:[]
+  },
+  {
+    id:'PC06', titulo:'Solicitud y aprobación de Orden de Compra',
+    desc:'Flujo de OC desde solicitud en obra, aprobación por gerencia y emisión al proveedor. Integrado con módulo Adquisiciones en Unysoft.',
+    riesgo:'Despachos tardíos y pagos no controlados. Sin flujo formal de OC, los compromisos de pago se generan sin visibilidad financiera.',
+    tiempo:'7–10 días/mes', estado:'resuelto',
+    modulos:['02 · Adquisiciones','Bodega Unysoft'],
+    pendiente:[]
+  },
+  {
+    id:'PC07', titulo:'Control de sueldos, tratos e incentivos de productividad MO',
+    desc:'Cálculo y seguimiento de remuneraciones variables por trato, bonos de productividad e incentivos para mano de obra directa.',
+    riesgo:'Improductividad y desmotivación. Sin control claro de tratos, la MO no tiene incentivo y la empresa no puede medir el costo real por unidad.',
+    tiempo:'~4 días/mes', estado:'pendiente',
+    modulos:[],
+    pendiente:['No abordado en el ecosistema actual','Requiere módulo o planilla dedicada']
+  },
+  {
+    id:'PC08', titulo:'Gestión de no conformidades de Calidad',
+    desc:'Registro, seguimiento y cierre de no conformidades en obra, con trazabilidad hacia lecciones aprendidas y post venta.',
+    riesgo:'Mismos errores repetidos y costo oculto de reparación. Sin registro sistemático, los defectos se repiten en cada etapa y vivienda.',
+    tiempo:'~3 días/mes', estado:'resuelto',
+    modulos:['08 · Calidad','Post Venta','Lecciones Aprendidas'],
+    pendiente:[]
+  },
+  {
+    id:'PC09', titulo:'Recepción bodega, traspasos entre obras y control de pérdidas de materiales',
+    desc:'Control de entrada/salida de bodega, traspasos entre proyectos y seguimiento de mermas. Incluye arriendos de maquinaria y elementos especiales.',
+    riesgo:'Mermas y pérdida de margen. Sin control de inventario en tiempo real, los materiales se pierden, duplican o no se registran en el costo real.',
+    tiempo:'~2 días/mes', estado:'parcial',
+    modulos:['02 · Adquisiciones','Bodega Unysoft','05 · Contabilidad'],
+    pendiente:['Arriendos maquinaria','Hojalatería','Prefabricado','Andamios','Hormigones','Áridos']
+  }
+];
+
+const ESTADO_CFG = {
+  resuelto:  { cls:'est-resuelto',  badge:'badge-resuelto',  label:'✅ Resuelto' },
+  parcial:   { cls:'est-parcial',   badge:'badge-parcial',   label:'⚙️ En desarrollo' },
+  pendiente: { cls:'est-pendiente', badge:'badge-pendiente', label:'🔴 No abordado' }
+};
+
+const NUM_BG = {
+  PC01:'#2C5282', PC02:'#6B46C1', PC03:'#2E7D32', PC04:'#C0622F',
+  PC05:'#1565C0', PC06:'#1A6A5A', PC07:'#B03060', PC08:'#455A64', PC09:'#6A1B9A'
+};
+
+let filtroActivo = 'todos';
+let openId = null;
+
+function render() {
+  const grid = document.getElementById('pc-grid');
+  const lista = filtroActivo === 'todos' ? PC_DATA : PC_DATA.filter(p => p.estado === filtroActivo);
+  grid.innerHTML = lista.map(pc => {
+    const cfg = ESTADO_CFG[pc.estado];
+    const isOpen = openId === pc.id;
+    return `
+    <div class="pc-card ${cfg.cls}${isOpen ? ' open' : ''}" onclick="toggle('${pc.id}')">
+      <div class="pc-card-head">
+        <div class="pc-num-badge" style="background:${NUM_BG[pc.id]}">${pc.id}</div>
+        <div class="pc-head-text">
+          <div class="pc-titulo">${pc.titulo}</div>
+          <div class="pc-tiempo">⏱ ${pc.tiempo}</div>
+        </div>
+        <span class="pc-estado-badge ${cfg.badge}">${cfg.label}</span>
+        <span class="pc-toggle">▾</span>
+      </div>
+      <div class="pc-body">
+        <div class="pc-separator"></div>
+        <div class="pc-lbl">Descripción del proceso</div>
+        <div class="pc-desc">${pc.desc}</div>
+        <div class="pc-lbl">Riesgo si no se estandariza</div>
+        <div class="pc-riesgo">${pc.riesgo}</div>
+        ${pc.modulos.length ? `
+        <div class="pc-lbl">Módulos del ecosistema que lo resuelven</div>
+        <div class="pc-chips">${pc.modulos.map(m=>`<span class="chip">${m}</span>`).join('')}</div>
+        ` : ''}
+        ${pc.pendiente.length ? `
+        <div class="pc-lbl" style="color:#991B1B">Pendiente / Sin cubrir</div>
+        <div class="pc-chips">${pc.pendiente.map(m=>`<span class="chip rojo">${m}</span>`).join('')}</div>
+        ` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(id) {
+  openId = (openId === id) ? null : id;
+  render();
+}
+
+function filtrar(btn, f) {
+  document.querySelectorAll('.pc-fil').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filtroActivo = f;
+  openId = null;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
